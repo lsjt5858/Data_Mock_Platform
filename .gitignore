@@ -1,0 +1,14 @@
+nut_venv/
+.idea/
+.trae/
+.DS_Store
+.vscode/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+*.log
+*.db
+data_generator.db
