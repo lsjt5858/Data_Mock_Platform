@@ -190,36 +190,113 @@
 
 ---
 
-## 快速开始（文档仓库版）
+## 快速开始（后端原型）
 
-> 说明：当前仓库为文档与规划，启动与构建命令将与后续代码仓库对齐。以下为本地开发的环境建议（Mac，Apple Silicon）。
+- 环境要求
+  - Python ≥ 3.9（macOS，Apple Silicon/M 芯片）
+  - 可选：`curl` 或 Postman 用于接口测试
 
-- 环境建议
-  - Node.js ≥ 18、npm 或 pnpm
-  - Docker Desktop ≥ 4.26（用于数据库/消息队列等依赖）
-  - 终端：macOS（Apple Silicon/M 芯片）
-
-- 安装 Node.js（Homebrew）
+- 创建虚拟环境与安装依赖
 ```bash
-brew install node
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+# 若公司内网源不可达，可改用官方索引
+pip install -r requirements.txt --index-url https://pypi.org/simple
 ```
 
-- 安装 Docker Desktop（可通过 App Store 或官网）
+- 启动服务
 ```bash
-open https://www.docker.com/products/docker-desktop/
+python app.py
+```
+访问 `http://127.0.0.1:5000/`，预期响应：`{"status":"ok"}`（健康检查，见 app.py:26-30）。
+
+- 主要 API 端点
+  - `POST /api/generate` 生成数据（校验后执行）
+  - `POST /api/export` 导出数据（json 返回字符串；csv/sql 作为附件流）
+  - `GET /api/field-types` 字段类型列表（来自 SQLite 缓存）
+  - `POST /api/validate-config` 只校验不生成
+
+- 示例命令
+  - 生成 5 行数据
+```bash
+curl -X POST http://127.0.0.1:5000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fields": [
+      {"name": "id", "type": "int", "params": {"min_value": 1, "max_value": 10}},
+      {"name": "email", "type": "email", "params": {}}
+    ],
+    "count": 5,
+    "include_null": false,
+    "random_seed": 42
+  }'
+```
+  - 导出为 JSON（字符串返回）
+```bash
+curl -X POST http://127.0.0.1:5000/api/export \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": [{"id": 1, "email": "a@b.com"}],
+    "format": "json",
+    "options": {"pretty": true}
+  }'
+```
+  - 导出为 CSV（附件流）
+```bash
+curl -X POST http://127.0.0.1:5000/api/export \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": [{"id": 1, "email": "a@b.com"}, {"id": 2, "email": null}],
+    "format": "csv",
+    "options": {"include_header": true, "delimiter": ","}
+  }' -D -
+```
+  - 导出为 SQL INSERT（批量）
+```bash
+curl -X POST http://127.0.0.1:5000/api/export \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": [{"id": 1, "email": "a@b.com", "name": "O\'Hara"}],
+    "format": "sql",
+    "options": {"table_name": "users", "include_header": true, "batch_size": 100}
+  }' -D -
+```
+  - 字段类型
+```bash
+curl http://127.0.0.1:5000/api/field-types
 ```
 
-- 安装 pnpm（可选）
+- 运行测试
 ```bash
-npm install -g pnpm
+pytest -q
 ```
+包含生成/校验/导出与 API 行为的单测（见 tests/ 目录）。
 
-当代码仓库就绪后，我们将提供：
-- 本地运行：依赖安装、环境变量配置、启动命令
-- 开发说明：代码结构、约定、测试与格式化
-- 部署说明：Docker Compose/Helm、环境差异与迁移
+- 配置项（`config.py`）
+  - `DB_PATH`：SQLite 文件路径，默认 `data_generator.db`
+  - `DEFAULT_LOCALE`：Faker 默认语言，`zh_CN`
+  - `NULL_PROBABILITY`：当 `include_null=true` 时返回 `null` 的概率（默认 0.3）
+如需调整，直接编辑 `config.py` 并重启服务。
 
----
+- 数据库说明
+  - 首次启动自动建表并插入 15 种字段类型（`backend/models/db.py:17-64`）
+  - 数据库文件已被 `.gitignore` 忽略，避免入库
+
+- 常见问题
+  - 405 报错：`/api/export` 仅支持 `POST`，使用浏览器 `GET` 会返回 405
+  - 依赖安装网络问题：使用 `--index-url https://pypi.org/simple` 或配置可用的公司内网源
+
+- 项目结构（后端）
+```
+backend/
+  models/db.py        # SQLite 初始化与种子
+  routes/api.py       # Flask 路由与统一回复
+  services/           # 生成/校验/导出/类型缓存
+app.py                # 应用入口与健康检查
+config.py             # 配置项
+tests/                # 单元测试
+```
 
 ## 权限与角色
 
