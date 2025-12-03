@@ -1,0 +1,283 @@
+Data Mock Platform - 实施计划
+项目概述
+基于README、设计文档和需求文档，开发一个数据生成平台（Data Mock Platform），用于为测试、演示和原型验证提供可视化的数据建模与批量生成能力。
+
+本计划聚焦于 MVP (最小可行产品)，实现单表数据生成、基础约束验证和导出功能。
+
+技术栈
+后端
+框架: Flask (Python 3.10+)
+数据生成: Faker
+数据库: SQLite
+其他: flask-cors, uuid, json
+前端
+框架: React 18 + TypeScript
+UI库: Ant Design 5
+构建工具: Vite
+HTTP客户端: Axios
+路由: React Router
+提议的变更
+后端实现
+[NEW] 项目结构
+backend/
+├── app.py                  # Flask 应用入口
+├── config.py              # 配置文件
+├── requirements.txt       # 依赖清单
+├── routes/               
+│   ├── __init__.py
+│   ├── generate.py        # /api/generate
+│   └── exports.py         # /api/exports
+├── services/
+│   ├── __init__.py
+│   ├── data_generator.py  # 核心生成引擎
+│   ├── faker_adapter.py   # Faker 适配器
+│   ├── validator.py       # 约束校验器
+│   └── exporter.py        # 导出功能
+├── repos/
+│   ├── __init__.py
+│   ├── base.py            # 基础 Repository
+│   ├── template_repo.py   # 模板存储
+│   ├── job_repo.py        # 任务存储
+│   └── export_repo.py     # 导出存储
+├── models/
+│   ├── __init__.py
+│   └── database.py        # SQLite 模型定义
+├── utils/
+│   ├── __init__.py
+│   └── logger.py          # 日志工具
+└── data/
+    └── mock_platform.db   # SQLite 数据库文件
+核心模块说明
+1. FakerAdapter (services/faker_adapter.py)
+
+将字段类型映射到 Faker 生成方法
+支持基础类型：int, float, string, boolean, datetime
+支持语义类型：email, phone, name, address, company, uuid, ip 等
+处理约束参数（范围、长度等）
+2. Validator (services/validator.py)
+
+验证字段约束：范围 (min/max)、长度、正则、唯一性
+支持空值比例控制
+返回验证结果和错误信息
+3. DataGenerator (services/data_generator.py)
+
+核心方法：
+generate_row(schema, context): 生成单行数据
+generate_batch(schema, count): 批量生成
+preview_sample(schema, count): 采样预览
+维护唯一性集合（用于 unique 字段）
+应用约束和分布规则
+4. Exporter (services/exporter.py)
+
+支持 CSV 和 JSON 格式导出
+批量写入，避免内存溢出
+生成导出文件并返回路径
+5. Database Models (models/database.py)
+
+SQLite 表设计：
+datasets: 模板定义
+jobs: 生成任务
+exports: 导出记录
+使用 JSON 字段存储 schema
+6. API Routes
+
+POST /api/generate: 接收模板定义和数量，返回生成的数据或采样
+POST /api/exports: 创建导出任务
+GET /api/exports/{id}/download: 下载导出文件
+前端实现
+[NEW] 项目结构
+frontend/
+├── index.html
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
+├── src/
+│   ├── main.tsx           # 应用入口
+│   ├── App.tsx            # 主应用组件
+│   ├── pages/
+│   │   ├── TemplateEditor.tsx    # 模板编辑页
+│   │   ├── DataGenerate.tsx      # 数据生成页
+│   │   └── PreviewExport.tsx     # 预览导出页
+│   ├── components/
+│   │   ├── FieldEditor.tsx       # 字段编辑器
+│   │   ├── FieldList.tsx         # 字段列表
+│   │   └── ExportPanel.tsx       # 导出面板
+│   ├── services/
+│   │   └── api.ts         # API 请求封装
+│   ├── types/
+│   │   └── index.ts       # TypeScript 类型定义
+│   └── styles/
+│       └── index.css      # 全局样式
+核心页面和组件
+1. TemplateEditor (模板编辑页)
+
+字段列表展示和管理（添加/删除字段）
+字段配置表单：
+字段名称
+字段类型选择（基础类型 + 语义类型）
+约束配置（范围、长度、唯一性等）
+保存模板到本地状态
+2. DataGenerate (数据生成页)
+
+显示当前模板配置
+输入生成数量
+触发生成请求
+显示加载状态和进度
+3. PreviewExport (预览和导出页)
+
+使用 Ant Design Table 展示生成的数据
+选择导出格式（CSV/JSON）
+触发导出和下载
+4. API Service (services/api.ts)
+
+Axios 实例配置（baseURL, timeout）
+API 方法封装：
+generateData(template, count)
+createExport(jobId, format)
+downloadExport(exportId)
+统一错误处理
+数据模型示例
+模板定义 (Dataset Schema)
+{
+  "name": "users",
+  "description": "用户数据模板",
+  "fields": [
+    {
+      "name": "user_id",
+      "type": "uuid",
+      "unique": true
+    },
+    {
+      "name": "email",
+      "type": "email",
+      "constraints": {
+        "regex": ".+@.+\\..+"
+      }
+    },
+    {
+      "name": "age",
+      "type": "int",
+      "constraints": {
+        "min": 18,
+        "max": 80
+      }
+    },
+    {
+      "name": "name",
+      "type": "name"
+    },
+    {
+      "name": "created_at",
+      "type": "datetime",
+      "distribution": {
+        "type": "uniform",
+        "start": "2024-01-01",
+        "end": "2024-12-31"
+      }
+    }
+  ]
+}
+验证计划
+自动化测试
+后端单元测试
+创建 backend/tests/ 目录，使用 pytest 进行测试：
+
+测试文件:
+
+test_faker_adapter.py: 测试字段类型映射
+test_validator.py: 测试约束验证逻辑
+test_data_generator.py: 测试数据生成核心逻辑
+test_exporter.py: 测试 CSV/JSON 导出
+运行命令:
+
+cd backend
+python -m pytest tests/ -v
+API 集成测试
+使用 pytest 测试 Flask API 端点：
+
+测试场景:
+
+测试 POST /api/generate 返回正确数据
+测试字段约束验证（范围、唯一性）
+测试导出创建和下载流程
+运行命令:
+
+cd backend
+python -m pytest tests/test_api.py -v
+浏览器测试
+前端功能测试
+使用 browser_subagent 进行端到端测试：
+
+测试流程:
+
+启动后端服务 (python app.py)
+启动前端开发服务器 (npm run dev)
+浏览器测试步骤：
+访问模板编辑页面
+添加字段（user_id, email, age, name）
+配置字段类型和约束
+进入生成页面，输入数量（如 1000）
+触发生成，验证加载状态
+查看预览表格，验证数据正确性
+选择导出格式（CSV），触发下载
+验证下载的文件格式正确
+性能验证
+大数据量测试:
+
+生成 10万 条数据，验证：
+生成速度（应 < 60秒）
+内存占用稳定
+导出文件完整性
+测试命令:
+
+# 使用 API 直接测试
+curl -X POST http://localhost:5000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"fields": [...], "count": 100000}'
+验收标准
+✅ 可以创建包含多种字段类型的模板
+✅ 生成的数据符合字段约束（范围、唯一性）
+✅ 可生成 ≥10万 条数据并成功导出
+✅ CSV 和 JSON 导出格式正确
+✅ 前端界面交互流畅，无明显错误
+✅ API 响应时间合理（单次生成 < 5秒 for 1000 条）
+开发顺序
+后端基础 (2-3小时)
+
+项目结构初始化
+数据库模型和 Repository
+FakerAdapter 和 Validator
+数据生成引擎 (2-3小时)
+
+DataGenerator 核心逻辑
+Exporter 实现
+API 路由
+后端测试 (1-2小时)
+
+单元测试
+API 集成测试
+前端基础 (2-3小时)
+
+项目初始化
+路由配置
+API Service 层
+前端页面开发 (3-4小时)
+
+模板编辑器
+生成页面
+预览导出页面
+前后端联调 (1-2小时)
+
+验证完整流程
+修复问题
+性能验证 (1小时)
+
+大数据量测试
+优化性能
+总预计时间: 12-18小时
+
+环境要求
+操作系统: macOS (Apple Silicon/M 系列)
+Python: 3.10+
+Node.js: 18+
+浏览器: Chrome/Safari (最新版本)

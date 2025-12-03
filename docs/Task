@@ -1,0 +1,90 @@
+Data Mock Platform - 开发任务清单
+阶段一：MVP (最小可行产品) - 单表生成与导出
+后端基础设施
+初始化 Flask 项目结构
+创建项目目录结构 (app, routes, services, repos, utils)
+配置 requirements.txt (Flask, Faker, flask-cors, SQLAlchemy)
+设置虚拟环境和依赖安装脚本
+创建配置文件 (config.py) 和环境变量模板
+后端核心功能
+ 数据库设计与实现
+
+ 设计 SQLite 数据模型 (datasets, jobs, exports, sources)
+ 实现数据库初始化脚本
+ 实现 Repository 层 (TemplateRepo, JobRepo, ExportRepo)
+ 数据生成引擎
+
+ 实现 FakerAdapter - 字段类型映射
+ 实现约束校验器 (范围、长度、正则、唯一性、空值)
+ 实现 DataGenerator 核心类
+ generate_row() 方法
+ generate_batch() 方法
+ 采样预览功能
+ 导出功能
+
+ 实现 CSV 导出器
+ 实现 JSON 导出器
+ 实现导出文件管理
+ API 路由
+
+ POST /api/generate - 生成数据
+ POST /api/exports - 创建导出
+ GET /api/exports/{id}/download - 下载导出
+ 集成 CORS 和错误处理中间件
+前端基础设施
+初始化 React 项目
+使用 Vite 创建 React + TypeScript 项目
+安装 Ant Design 和相关依赖
+配置项目结构 (pages, components, services, utils)
+配置路由 (React Router)
+前端核心功能
+ 模板编辑页面
+
+ 字段列表组件 (可添加/删除字段)
+ 字段配置表单 (类型、约束、分布)
+ 模板保存和加载功能
+ 数据生成页面
+
+ 模板选择器
+ 生成数量输入
+ 生成触发按钮
+ 进度显示
+ 预览和导出页面
+
+ 数据预览表格 (Ant Design Table)
+ 导出格式选择 (CSV/JSON)
+ 下载功能
+ API 集成
+
+ Axios 封装
+ 错误处理和加载状态
+ API service 层
+集成和测试
+ 前后端联调
+
+ 验证 API 接口
+ 测试数据生成流程
+ 测试导出下载功能
+ MVP 验收
+
+ 生成 ≥10万条单表数据
+ 导出 CSV/JSON 格式
+ 字段约束验证正确
+ 预览采样功能正常
+
+
+
+阶段二：扩展功能 (后续)
+ 多表关联与外键引用
+ 规则引擎与表达式
+ 任务调度系统
+ 数据源管理 (CSV/JSON 导入)
+ NDJSON 和 SQL INSERT 导出
+
+ 
+阶段三：高级功能 (后续)
+ 并发优化与分片
+ 权限与审计系统
+ Webhook 集成
+ 对象存储集成
+ 性能优化
